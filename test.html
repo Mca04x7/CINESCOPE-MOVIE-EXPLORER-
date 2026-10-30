@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineScope - Movie Explorer</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0d12;--card:#151923;--text:#f5f5f7;--muted:#a5adbd;--gold:#f5b942;--border:#292f3d}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{height:75px;padding:0 7%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.logo{font-size:27px;font-weight:bold;color:white;text-decoration:none}
+.logo span,h1 span{color:var(--gold)}
+nav{display:flex;gap:12px;align-items:center}
+button,select,input{font:inherit}
+button{cursor:pointer}
+.navbtn{padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text)}
+.hero{padding:75px 7%;background:radial-gradient(ellipse at 85% 25%,#59421e44,transparent 45%),linear-gradient(120deg,#0b0d12,#171b25)}
+.eyebrow{color:var(--gold);font-size:12px;font-weight:bold;letter-spacing:2px;margin-bottom:15px}
+h1{font-size:clamp(40px,6vw,68px);line-height:1.1}
+.hero p.desc{color:var(--muted);margin:20px 0;line-height:1.7}
+.search{display:flex;gap:10px;max-width:560px;background:var(--card);padding:7px;border:1px solid var(--border);border-radius:13px}
+.search input{flex:1;min-width:0;padding:13px;border:0;outline:0;background:transparent;color:var(--text)}
+.search button,.loadmore{background:var(--gold);color:#17130b;border:0;border-radius:9px;padding:13px 22px;font-weight:bold}
+main{padding:55px 7%;max-width:1700px;margin:auto}
+.heading{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:25px}
+h2{font-size:29px}
+select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:12px}
+.filters{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:25px}
+.filter{padding:10px 16px;border-radius:30px;border:1px solid var(--border);background:var(--card);color:var(--muted)}
+.filter.active,.filter:hover{background:var(--gold);color:#17130b;border-color:var(--gold)}
+#status{text-align:center;color:var(--muted);padding:20px 0}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px 16px}
+.movie{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:.2s}
+.movie:hover{transform:translateY(-5px)}
+.poster{aspect-ratio:2/3;padding:15px;display:flex;flex-direction:column;justify-content:end;position:relative;overflow:hidden}
+.poster .year{margin-bottom:auto;font-size:13px}
+.poster .title{font-size:24px;line-height:1.15;font-weight:bold;overflow-wrap:anywhere;text-shadow:0 2px 8px #0008}
+.poster .brand{font-size:9px;letter-spacing:2px;margin-top:15px}
+.rating{position:absolute;top:10px;left:10px;background:#111d;padding:7px;border-radius:6px;color:var(--gold);font-size:12px}
+.heart{position:absolute;right:9px;top:9px;border:0;border-radius:50%;width:35px;height:35px;background:#111d;color:white;font-size:20px}
+.heart.saved{color:#ff6381}
+.info{padding:13px}
+.info h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{display:flex;justify-content:space-between;gap:5px;margin-top:9px;font-size:12px;color:var(--muted)}
+.loadmore{display:block;margin:30px auto}
+footer{text-align:center;border-top:1px solid var(--border);padding:30px;color:var(--muted);font-size:13px}
+.modal{display:none;position:fixed;inset:0;background:#000c;z-index:5;padding:20px;overflow:auto;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modalbox{width:min(700px,100%);background:var(--card);border:1px solid var(--border);border-radius:16px;padding:25px;margin:auto}
+.close{float:right;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px}
+.detail{clear:both;padding-top:20px}
+.detail h2{margin:15px 0}
+.detail p{color:var(--muted);line-height:1.8;margin:12px 0}
+.detail button{margin-top:12px}
+body.light{--bg:#f4f5f8;--card:#fff;--text:#171923;--muted:#636b7a;--border:#dce0e8}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:750px){header{padding:15px 5%;height:auto;gap:12px;flex-wrap:wrap}nav{flex-wrap:wrap}.hero,main{padding:40px 5%}.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.heading{align-items:start;flex-direction:column}h2{font-size:24px}}
+@media(max-width:480px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster .title{font-size:20px}.search button{padding:10px 13px}.logo{font-size:23px}}
+</style>
+</head>
+
+<body>
+<header>
+  <a class="logo" href="#">Cine<span>Scope</span></a>
+  <nav>
+    <button class="navbtn" id="allBtn">Explore</button>
+    <button class="navbtn" id="favBtn">♥ Watchlist</button>
+    <button class="navbtn" id="themeBtn">☀ Theme</button>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">YOUR PERSONAL CINEMA</div>
+  <h1>Find your next<br><span>favourite film.</span></h1>
+  <p class="desc">Explore movies, discover hidden gems and build your watchlist.</p>
+  <form class="search" id="searchForm">
+    <input id="searchInput" type="search" placeholder="Search movies..." autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+</section>
+
+<main id="movies">
+  <div class="heading">
+    <div>
+      <div class="eyebrow">HANDPICKED FOR YOU</div>
+      <h2 id="heading">Popular Movies</h2>
+    </div>
+    <select id="sort">
+      <option value="popular">Popular First</option>
+      <option value="rating">Top Rated</option>
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+    </select>
+  </div>
+
+  <div class="filters" id="filters"></div>
+  <p id="status" role="status">Loading movies...</p>
+  <div class="grid" id="grid"></div>
+  <button class="loadmore" id="more">Load More Movies</button>
+</main>
+
+<footer>CineScope · Movie Explorer Mini Project</footer>
+
+<div class="modal" id="modal">
+  <div class="modalbox">
+    <button class="close" id="close">✕ Close</button>
+    <div class="detail" id="detail"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// All data is included here. No API key is needed.
+const movies = [
+{id:1,title:"3 Idiots",year:2009,rating:8.4,genre:"Comedy",color:"#247b70",cast:"Aamir Khan, R. Madhavan, Sharman Joshi",desc:"Three engineering students challenge the education system and discover friendship, passion and the meaning of success."},
+{id:2,title:"Dangal",year:2016,rating:8.3,genre:"Drama",color:"#95613a",cast:"Aamir Khan, Fatima Sana Shaikh",desc:"A former wrestler trains his daughters to become wrestling champions."},
+{id:3,title:"PK",year:2014,rating:8.1,genre:"Comedy",color:"#3986a5",cast:"Aamir Khan, Anushka Sharma",desc:"An alien asks unusual questions about human beliefs and society."},
+{id:4,title:"Inception",year:2010,rating:8.8,genre:"Sci-Fi",color:"#344c83",cast:"Leonardo DiCaprio, Joseph Gordon-Levitt",desc:"A thief who enters dreams is given an almost impossible mission."},
+{id:5,title:"Interstellar",year:2014,rating:8.7,genre:"Sci-Fi",color:"#815b43",cast:"Matthew McConaughey, Anne Hathaway",desc:"Explorers travel through space in search of a future for humanity."},
+{id:6,title:"The Dark Knight",year:2008,rating:9.0,genre:"Action",color:"#444954",cast:"Christian Bale, Heath Ledger",desc:"Batman faces the Joker, who threatens Gotham City."},
+{id:7,title:"Avengers: Endgame",year:2019,rating:8.4,genre:"Action",color:"#8b563e",cast:"Robert Downey Jr., Chris Evans",desc:"The Avengers attempt to undo the destruction caused by Thanos."},
+{id:8,title:"Avengers: Infinity War",year:2018,rating:8.4,genre:"Action",color:"#6c437a",cast:"Robert Downey Jr., Chris Hemsworth",desc:"Heroes unite to stop Thanos from collecting the Infinity Stones."},
+{id:9,title:"Oppenheimer",year:2023,rating:8.3,genre:"Drama",color:"#9a5737",cast:"Cillian Murphy, Emily Blunt",desc:"The story of the scientist behind the atomic bomb project."},
+{id:10,title:"Titanic",year:1997,rating:7.9,genre:"Romance",color:"#376f99",cast:"Leonardo DiCaprio, Kate Winslet",desc:"Two people fall in love aboard an ocean liner facing disaster."},
+{id:11,title:"The Conjuring",year:2013,rating:7.5,genre:"Horror",color:"#534665",cast:"Vera Farmiga, Patrick Wilson",desc:"Paranormal investigators help a family experiencing frightening events."},
+{id:12,title:"Joker",year:2019,rating:8.3,genre:"Drama",color:"#933e42",cast:"Joaquin Phoenix, Robert De Niro",desc:"A struggling comedian undergoes a disturbing transformation."},
+{id:13,title:"Drishyam",year:2015,rating:8.2,genre:"Thriller",color:"#39715b",cast:"Ajay Devgn, Shriya Saran",desc:"A father uses his intelligence to protect his family."},
+{id:14,title:"Andhadhun",year:2018,rating:8.2,genre:"Thriller",color:"#62517c",cast:"Ayushmann Khurrana, Tabu",desc:"A pianist becomes entangled in a murder mystery."},
+{id:15,title:"Sholay",year:1975,rating:8.1,genre:"Action",color:"#aa733a",cast:"Amitabh Bachchan, Dharmendra",desc:"Two criminals are hired to protect a village from a bandit."},
+{id:16,title:"Zindagi Na Milegi Dobara",year:2011,rating:8.2,genre:"Comedy",color:"#438795",cast:"Hrithik Roshan, Farhan Akhtar",desc:"Three friends travel through Spain and confront their fears."},
+{id:17,title:"The Matrix",year:1999,rating:8.7,genre:"Sci-Fi",color:"#277249",cast:"Keanu Reeves, Laurence Fishburne",desc:"A programmer discovers that reality is an elaborate simulation."},
+{id:18,title:"Toy Story",year:1995,rating:8.3,genre:"Animation",color:"#5486b7",cast:"Tom Hanks, Tim Allen",desc:"Toys come to life when humans are not around."},
+{id:19,title:"Finding Nemo",year:2003,rating:8.2,genre:"Animation",color:"#3186b8",cast:"Albert Brooks, Ellen DeGeneres",desc:"A clownfish crosses the ocean to find his missing son."},
+{id:20,title:"La La Land",year:2016,rating:8.0,genre:"Romance",color:"#b96981",cast:"Ryan Gosling, Emma Stone",desc:"A musician and actress pursue their dreams in Los Angeles."},
+{id:21,title:"The Shawshank Redemption",year:1994,rating:9.3,genre:"Drama",color:"#668875",cast:"Tim Robbins, Morgan Freeman",desc:"Two prisoners build a friendship and hold on to hope."},
+{id:22,title:"Jurassic Park",year:1993,rating:8.2,genre:"Adventure",color:"#577448",cast:"Sam Neill, Laura Dern",desc:"A dinosaur theme park becomes dangerous when its security fails."},
+{id:23,title:"Dhurandhar",year:2025,rating:7.5,genre:"Action",color:"#a44b32",cast:"Ranveer Singh",desc:"Sample catalogue entry. Details and rating have not been independently verified."},
+{id:24,title:"The Lion King",year:1994,rating:8.5,genre:"Animation",color:"#bd8a3b",cast:"Matthew Broderick, James Earl Jones",desc:"A young lion must find the courage to reclaim his place."}
+];
+
+const $ = s => document.querySelector(s);
+const grid = $("#grid");
+const status = $("#status");
+const input = $("#searchInput");
+const heading = $("#heading");
+const filters = $("#filters");
+const more = $("#more");
+
+let query = "";
+let genre = "All Movies";
+let onlyFav = false;
+let limit = 12;
+let sort = "popular";
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function getFavs() {
+  try {
+    return JSON.parse(localStorage.getItem("cineFavs") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveFavs(list) {
+  localStorage.setItem("cineFavs", JSON.stringify(list));
+}
+
+function buildFilters() {
+  const list = ["All Movies","Action","Adventure","Animation","Comedy","Drama","Horror","Romance","Sci-Fi","Thriller"];
+  filters.innerHTML = "";
+
+  list.forEach(name => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "filter";
+    b.textContent = name;
+    b.dataset.genre = name;
+    filters.appendChild(b);
+  });
+
+  updateFilters();
+}
+
+function updateFilters() {
+  document.querySelectorAll(".filter").forEach(b => {
+    b.classList.toggle("active", b.dataset.genre === genre);
+  });
+}
+
+function results() {
+  let list = [...movies];
+
+  if (query) {
+    const q = query.toLowerCase();
+    list = list.filter(m =>
+      m.title.toLowerCase().includes(q) ||
+      m.cast.toLowerCase().includes(q) ||
+      m.genre.toLowerCase().includes(q) ||
+      String(m.year).includes(q)
+    );
+  }
+
+  if (genre !== "All Movies") {
+    list = list.filter(m => m.genre === genre);
+  }
+
+  if (onlyFav) {
+    const ids = getFavs().map(m => m.id);
+    list = list.filter(m => ids.includes(m.id));
+  }
+
+  if (sort === "rating") list.sort((a,b) => b.rating-a.rating);
+  if (sort === "newest") list.sort((a,b) => b.year-a.year);
+  if (sort === "oldest") list.sort((a,b) => a.year-b.year);
+  if (sort === "popular") list.sort((a,b) => b.rating-a.rating);
+
+  return list;
+}
+
+function render() {
+  const list = results();
+  const shown = list.slice(0, limit);
+
+  heading.textContent = onlyFav ? "My Watchlist" :
+    query ? `Results for "${query}"` :
+    genre !== "All Movies" ? `${genre} Movies` : "Popular Movies";
+
+  grid.innerHTML = "";
+
+  if (!list.length) {
+    status.textContent = `No movies found for "${query}". Try another name.`;
+    more.hidden = true;
+    return;
+  }
+
+  status.textContent = `Found ${list.length} movie(s)`;
+
+  shown.forEach(m => {
+    const saved = getFavs().some(f => f.id === m.id);
+    const card = document.createElement("article");
+    card.className = "movie";
+
+    card.innerHTML = `
+      <div class="poster" style="background:linear-gradient(145deg,${m.color},#111522)">
+        <span class="year">${m.year}</span>
+        <span class="title">${escapeHTML(m.title)}</span>
+        <span class="brand">CINESCOPE</span>
+        <span class="rating">★ ${m.rating}</span>
+        <button class="heart ${saved ? "saved" : ""}" type="button"
+          aria-label="Toggle favourite">${saved ? "♥" : "♡"}</button>
+      </div>
+      <div class="info">
+        <h3>${escapeHTML(m.title)}</h3>
+        <div class="meta"><span>${m.year}</span><span>${m.genre}</span></div>
+      </div>`;
+
+    card.querySelector(".heart").addEventListener("click", e => {
+      e.stopPropagation();
+      toggleFav(m);
+    });
+
+    card.addEventListener("click", () => showDetails(m));
+    grid.appendChild(card);
+  });
+
+  more.hidden = limit >= list.length;
+}
+
+// Search
+$("#searchForm").addEventListener("submit", e => {
+  e.preventDefault();
+  query = input.value.trim();
+  genre = "All Movies";
+  onlyFav = false;
+  limit = 12;
+  updateFilters();
+  render();
+});
+
+// Genre filters
+filters.addEventListener("click", e => {
+  const b = e.target.closest("[data-genre]");
+  if (!b) return;
+  genre = b.dataset.genre;
+  onlyFav = false;
+  limit = 12;
+  updateFilters();
+  render();
+});
+
+// Sorting
+$("#sort").addEventListener("change", e => {
+  sort = e.target.value;
+  render();
+});
+
+// Watchlist
+function toggleFav(movie) {
+  let list = getFavs();
+
+  if (list.some(m => m.id === movie.id)) {
+    list = list.filter(m => m.id !== movie.id);
+  } else {
+    list.push(movie);
+  }
+
+  saveFavs(list);
+  render();
+}
+
+$("#favBtn").addEventListener("click", () => {
+  onlyFav = true;
+  query = "";
+  input.value = "";
+  genre = "All Movies";
+  limit = 12;
+  updateFilters();
+  render();
+});
+
+$("#allBtn").addEventListener("click", () => {
+  onlyFav = false;
+  query = "";
+  input.value = "";
+  genre = "All Movies";
+  limit = 12;
+  updateFilters();
+  render();
+  $("#movies").scrollIntoView({behavior:"smooth"});
+});
+
+// Movie details
+function showDetails(m) {
+  $("#detail").innerHTML = `
+    <div style="height:150px;border-radius:10px;padding:20px;display:flex;align-items:end;background:linear-gradient(130deg,${m.color},#111522)">
+      <h2>${escapeHTML(m.title)}</h2>
+    </div>
+    <h2>${escapeHTML(m.title)}</h2>
+    <p style="color:var(--gold)">★ ${m.rating} / 10</p>
+    <p>${m.year} · ${m.genre}</p>
+    <p><strong>Cast:</strong> ${escapeHTML(m.cast)}</p>
+    <p>${escapeHTML(m.desc)}</p>
+    <button class="navbtn" id="detailFav">
+      ${getFavs().some(f => f.id === m.id) ? "♥ Remove from Watchlist" : "♡ Add to Watchlist"}
+    </button>`;
+
+  $("#modal").classList.add("open");
+  $("#modalFav").hidden = true;
+
+  $("#detailFav").addEventListener("click", () => {
+    toggleFav(m);
+    showDetails(m);
+  });
+}
+
+function closeModal() {
+  $("#modal").classList.remove("open");
+}
+
+$("#close").addEventListener("click", closeModal);
+$("#modal").addEventListener("click", e => {
+  if (e.target.id === "modal") closeModal();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+});
+
+// Load more
+more.addEventListener("click", () => {
+  limit += 12;
+  render();
+});
+
+// Theme
+$("#themeBtn").addEventListener("click", () => {
+  document.body.classList.toggle("light");
+});
+
+// Initialize
+buildFilters();
+render();
+</script>
+</body>
+</html>
